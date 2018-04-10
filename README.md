@@ -1,5 +1,6 @@
 # DLCV, 2018 Spring
 Course: Deep Learning for Computer Vision at National Taiwan University
+
 Author: d05921027 Chun-Min Chang, twcmchang@gmail.com
 
 -------
