@@ -8,6 +8,7 @@ from progress.bar import Bar
 from ipywidgets import IntProgress
 from IPython.display import display
 import skimage.transform
+import imageio
 
 from model import VGG16
 from utils import read_images, read_masks, read_list
