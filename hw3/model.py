@@ -1,3 +1,4 @@
+# %load model.py
 import os
 import time
 import numpy as np
@@ -5,7 +6,7 @@ import tensorflow as tf
 
 VGG_MEAN = [103.939, 116.779, 123.68] # [B, G, R]
 class VGG16:
-    def __init__(self, classes=7, shape=(512,512,3)):
+    def __init__(self, classes=7, shape=(256,256,3)):
         # input information
         self.H, self.W, self.C = shape
         self.classes = classes
@@ -13,7 +14,7 @@ class VGG16:
         # parameter dictionary
         self.para_dict = dict()
         
-    def build(self, vgg16_npy_path, mode='FCN32s' ,keep_prob=1.0):
+    def build(self, vgg16_npy_path, mode='FCN32s', keep_prob=1.0):
         """
         load pre-trained weights from path
         :param vgg16_npy_path: file path of vgg16 pre-trained weights
@@ -21,7 +22,7 @@ class VGG16:
 
         # input placeholder
         self.x = tf.placeholder(tf.float32, [None, self.H, self.W, self.C])
-        self.y = tf.placeholder(tf.float32, [None, self.H, self.W])
+        self.y = tf.placeholder(tf.int64, [None, self.H, self.W])
         self.is_train = tf.placeholder(tf.bool)
         
         # normalize inputs
@@ -64,7 +65,7 @@ class VGG16:
         ### pre-trained VGG-16 end ###
     
         ### convert to fully convolutional layer ###
-        conv6 = self.conv_bn_layer(pool5, name="conv6", shape=(7, 7, 512, 4096))
+        conv6 = self.conv_bn_layer(pool5, name="conv6", shape=(1, 1, 512, 4096))
         conv6 = self.dropout_layer(conv6, keep_prob=self._keep_prob)
 
         conv7 = self.conv_bn_layer(conv6, name="conv7", shape=(1, 1, 4096, 4096))
@@ -75,32 +76,39 @@ class VGG16:
         ### transpose convolutional layer ###
         ### FCN8s
         if mode=="FCN32s":
-            shapeX = self.x.get_shape().as_list()
-            logits = self.trans_conv_layer(bottom=conv8, shape=(4, 4, shapeX[3], self.classes), output_shape=shapeX, stride=32, name="logits")
+            shapeX = tf.shape(self.x)
+            logits = self.trans_conv_layer(bottom=conv8, shape=(4, 4, self.classes, self.classes), 
+                                           output_shape=[shapeX[0], shapeX[1], shapeX[2], self.classes], stride=32, name="logits")
         elif mode=="FCN16s":
-            shape1 = pool4.get_shape().as_list()
-            trans_conv1 = self.trans_conv_layer(bottom=conv8, shape=(4, 4, shape1[3], self.classes), output_shape=shape1, stride=2, name="trans_conv1")
+            shape1 = pool4.get_shape()
+            trans_conv1 = self.trans_conv_layer(bottom=conv8, shape=(4, 4, shape1[3], self.classes), 
+                                                output_shape=shape1, stride=2, name="trans_conv1")
             fuse1 = tf.add(trans_conv1, pool4, name="fuse1")
-            shapeX = self.x.get_shape().as_list()
-            logits = self.trans_conv_layer(bottom=fuse1, shape=(4, 4, shapeX[3], shape1[3]), output_shape=shapeX, stride=16, name="logits")
+            
+            shapeX = tf.shape(self.x)
+            logits = self.trans_conv_layer(bottom=fuse1, shape=(4, 4, shapeX[3], shape1[3]), 
+                                           output_shape=[shapeX[0], shapeX[1], shapeX[2], self.classes], stride=16, name="logits")
         elif mode=="FCN8s":
-            shape1 = pool4.get_shape().as_list()
-            trans_conv1 = self.trans_conv_layer(bottom=conv8, shape=(4, 4, shape1[3], self.classes), output_shape=shape1, stride=2, name="trans_conv1")
+            shape1 = pool4.get_shape()
+            trans_conv1 = self.trans_conv_layer(bottom=conv8, shape=(4, 4, shape1[3], self.classes), 
+                                                output_shape=shape1, stride=2, name="trans_conv1")
             fuse1 = tf.add(trans_conv1, pool4, name="fuse1")
 
-            shape2 = pool3.get_shape().as_list()
-            trans_conv2 = self.trans_conv_layer(bottom=fuse1, shape=(4, 4, shape2[3], shape1[3]), output_shape=shape2, stride=2, name="trans_conv2")
+            shape2 = pool3.get_shape()
+            trans_conv2 = self.trans_conv_layer(bottom=fuse1, shape=(4, 4, shape2[3], shape1[3]), 
+                                                output_shape=shape2, stride=2, name="trans_conv2")
             fuse2 = tf.add(trans_conv2, pool3, name="fuse2")
 
-            shapeX = self.x.get_shape().as_list()
-            logits = self.trans_conv_layer(bottom=fuse2, shape=(16, 16, self.classes, shape2[3]), output_shape=shapeX, stride=8, name="logits")
+            shapeX = tf.shape(self.x)
+            logits = self.trans_conv_layer(bottom=fuse2, shape=(16, 16, self.classes, shape2[3]), 
+                                           output_shape=[shapeX[0], shapeX[1], shapeX[2], self.classes], stride=8, name="logits")
             ### transpose end ###
 
         self.pred = tf.argmax(logits, dimension=3, name="pred")
         
         cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=self.y)
         self.loss = tf.reduce_mean(cross_entropy)
-        self.accuracy = tf.reduce_mean(tf.cast(tf.equal(x=tf.argmax(logits, 3), y=self.y), tf.float32))
+        self.accuracy = tf.reduce_mean(tf.cast(tf.equal(x=self.pred, y=self.y), tf.float32))
 
     def avg_pool(self, bottom, name):
         return tf.nn.avg_pool(bottom, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name=name)
@@ -127,7 +135,7 @@ class VGG16:
         
         self.para_dict[name] = [conv_filter, conv_bias]
 
-        conv = tf.nn.conv2d_transpose(bottom, conv_filter, output_shape, [1, stride, stride, 1])
+        conv = tf.nn.conv2d_transpose(bottom, conv_filter, output_shape, strides=[1, stride, stride, 1], padding="SAME")
         conv = tf.nn.bias_add(conv, conv_bias)
 
         return conv
