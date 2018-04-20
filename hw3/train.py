@@ -21,7 +21,7 @@ def main():
     parser.add_argument('--init_from', type=str, default='keras-vgg16.npy', help='pre-trained weights')
     parser.add_argument('--save_dir', type=str, default='save', help='directory to store checkpointed models')
     parser.add_argument('--mode', type=str, default='FCN32s', help='FCN mode: FCN32s, FCN16s, FCN8s')
-    parser.add_argument('--lr', type=float, default=4e-4, help='starting learning rate')
+    parser.add_argument('--lr', type=float, default=1e-4, help='starting learning rate')
     parser.add_argument('--decay', type=float, default=0.0, help='multiplier for weight decay')
     parser.add_argument('--keep_prob', type=float, default=1.0, help='dropout keep probability for fc layer')    
     parser.add_argument('--note', type=str, default='', help='argument for taking notes')
@@ -33,7 +33,6 @@ def main():
         os.makedirs(FLAG.save_dir)
 
     train(FLAG)
-    
 
 def train(FLAG):
     print("Reading dataset...")
@@ -161,10 +160,8 @@ def train(FLAG):
             if (current_best_val_loss - val_loss) > min_delta:
                 current_best_val_loss = val_loss
                 patience_counter = 0
-
-    #             para_dict = sess.run(vgg16.para_dict)
-    #             np.save(os.path.join(FLAG.save_dir, "para_dict.npy"), para_dict)
-    #             print("save in %s" % os.path.join(FLAG.save_dir, "para_dict.npy"))
+                saver.save(sess, checkpoint_path, global_step=epoch_counter)
+                print("save in %s" % checkpoint_path)
             else:
                 patience_counter += 1
 
@@ -181,11 +178,10 @@ def train(FLAG):
             bar_val.finish()
 
             print("Epoch %s (%s), %s sec >> train loss: %.4f, train accu: %.4f, val loss: %.4f, val accu: %.4f" % (epoch_counter, patience_counter, round(time.time()-stime,2), train_loss, train_accu, val_loss, val_accu))
-        saver.save(sess, checkpoint_path, global_step=epoch_counter)
         
-        para_dict = sess.run(vgg16.para_dict)
-        np.save(os.path.join(FLAG.save_dir, "para_dict.npy"), para_dict)
-        print("save in %s" % os.path.join(FLAG.save_dir, "para_dict.npy"))
+        # para_dict = sess.run(vgg16.para_dict)
+        # np.save(os.path.join(FLAG.save_dir, "para_dict.npy"), para_dict)
+        # print("save in %s" % os.path.join(FLAG.save_dir, "para_dict.npy"))
 
         FLAG.optimizer = opt_type
         FLAG.lr = start_learning_rate
