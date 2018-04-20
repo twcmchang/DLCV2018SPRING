@@ -11,12 +11,13 @@ import skimage.transform
 import imageio
 
 from model import VGG16
-from utils import read_images, read_masks, read_list
+from utils import read_images, read_masks, read_list, label2rgb
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--init_from', type=str, default='keras-vgg16.npy', help='pre-trained weights')
     parser.add_argument('--save_dir', type=str, default='save', help='directory to store checkpointed models')
+    parser.add_argument('--lr', type=float, default=4e-4, help='starting learning rate')
     parser.add_argument('--decay', type=float, default=0.0, help='multiplier for weight decay')
     parser.add_argument('--keep_prob', type=float, default=1.0, help='dropout keep probability for fc layer')    
     parser.add_argument('--note', type=str, default='', help='argument for taking notes')
@@ -33,8 +34,8 @@ def main():
 def train(FLAG):
     print("Reading dataset...")
     # load data
-    Xtrain, Ytrain = read_images("hw3-train-validation/train/"), read_masks("hw3-train-validation/train/") 
-    Xtest, Ytest = read_images("hw3-train-validation/validation/"), read_masks("hw3-train-validation/validation/")
+    Xtrain, Ytrain = read_images("hw3-train-validation/train/"), read_masks("hw3-train-validation/train/", onehot=True) 
+    Xtest, Ytest = read_images("hw3-train-validation/validation/"), read_masks("hw3-train-validation/validation/", onehot=True)
     track = ["hw3-train-validation/validation/0008","hw3-train-validation/validation/0097","hw3-train-validation/validation/0107"]
     Xtrack, Ytrack = read_list(track)
 
@@ -70,12 +71,12 @@ def train(FLAG):
 
         # Passing global_step to minimize() will increment it at each step.
         if opt_type is 'sgd':
-            start_learning_rate = 4e-4
+            start_learning_rate = FLAG.lr
             half_cycle = 2000
             learning_rate = tf.train.exponential_decay(start_learning_rate, global_step, half_cycle, 0.5, staircase=True)
             opt = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=0.9, use_nesterov=True)
         else:
-            start_learning_rate = 4e-4
+            start_learning_rate = FLAG.lr
             half_cycle = 2000
             learning_rate = tf.train.exponential_decay(start_learning_rate, global_step, half_cycle, 0.5, staircase=True)
             opt = tf.train.AdamOptimizer(learning_rate=learning_rate)
@@ -96,7 +97,7 @@ def train(FLAG):
 
         # reset due to adding a new task
         patience_counter = 0
-        current_best_val_loss = 0
+        current_best_val_loss = np.float('Inf')
 
         # optimize when the aggregated obj
         while(patience_counter < early_stop_patience and epoch_counter < epoch):
@@ -148,11 +149,12 @@ def train(FLAG):
                 
                 for i, fname in enumerate(track):
                     saveimg = skimage.transform.resize(Xplot[i],output_shape=(512,512),order=0,preserve_range=True,clip=False)
-                    imageio.imwrite("plot/"+os.path.basename(fname)+"_pred_"+str(epoch_counter)+".png", saveimg)
-                    print("save into plot/"+os.path.basename(fname)+"_pred_"+str(epoch_counter)+".png")
+                    saveimg = label2rgb(saveimg)
+                    imageio.imwrite(os.path.join(FLAG.save_dir,os.path.basename(fname)+"_pred_"+str(epoch_counter)+".png"), saveimg)
+                    print(os.path.join(FLAG.save_dir,os.path.basename(fname)+"_pred_"+str(epoch_counter)+".png"))
                 
             # early stopping check
-            if (current_best_val_loss - val_loss) < min_delta:
+            if (current_best_val_loss - val_loss) > min_delta:
                 current_best_val_loss = val_loss
                 patience_counter = 0
 
@@ -204,7 +206,6 @@ def train(FLAG):
             with open("/home/cmchang/DLCV2018SPRING/hw3/model.csv", "w") as myfile:
                 myfile.write(header)
                 myfile.write(row)
-
 
 if __name__ == '__main__':
     main()
