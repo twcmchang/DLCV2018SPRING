@@ -76,32 +76,30 @@ class VGG16:
         ### transpose convolutional layer ###
         ### FCN8s
         if mode=="FCN32s":
-            shapeX = tf.shape(self.x)
             logits = self.trans_conv_layer(bottom=conv8, shape=(64, 64, self.classes, self.classes), # (h, w, out, in)
-                                           output_shape=[shapeX[0], shapeX[1], shapeX[2], self.classes], stride=32, name="logits")
+                                           output_shape=tf.shape(self.y), stride=32, name="logits")
         elif mode=="FCN16s":
-            shape1 = pool4.get_shape()
+            shape1 = pool4.get_shape().as_list()
             trans_conv1 = self.trans_conv_layer(bottom=conv8, shape=(4, 4, shape1[3], self.classes), # (h, w, out, in)
-                                                output_shape=shape1, stride=2, name="trans_conv1")
+                                                output_shape=tf.shape(pool4), stride=2, name="trans_conv1")
             fuse1 = tf.add(trans_conv1, pool4, name="fuse1")
             
-            shapeX = tf.shape(self.x)
+            #shapeX = tf.shape(self.x)
             logits = self.trans_conv_layer(bottom=fuse1, shape=(32, 32, self.classes, shape1[3]), # (h, w, out, in)
-                                           output_shape=[shapeX[0], shapeX[1], shapeX[2], self.classes], stride=16, name="logits")
+                                           output_shape=tf.shape(self.y), stride=16, name="logits")
         elif mode=="FCN8s":
-            shape1 = pool4.get_shape()
+            shape1 = pool4.get_shape().as_list()
             trans_conv1 = self.trans_conv_layer(bottom=conv8, shape=(4, 4, shape1[3], self.classes), 
-                                                output_shape=shape1, stride=2, name="trans_conv1")
+                                                output_shape=tf.shape(pool4), stride=2, name="trans_conv1")
             fuse1 = tf.add(trans_conv1, pool4, name="fuse1")
 
-            shape2 = pool3.get_shape()
+            shape2 = pool3.get_shape().as_list()
             trans_conv2 = self.trans_conv_layer(bottom=fuse1, shape=(4, 4, shape2[3], shape1[3]), 
-                                                output_shape=shape2, stride=2, name="trans_conv2")
+                                                output_shape=tf.shape(pool3), stride=2, name="trans_conv2")
             fuse2 = tf.add(trans_conv2, pool3, name="fuse2")
 
-            shapeX = tf.shape(self.x)
             logits = self.trans_conv_layer(bottom=fuse2, shape=(16, 16, self.classes, shape2[3]), 
-                                           output_shape=[shapeX[0], shapeX[1], shapeX[2], self.classes], stride=8, name="logits")
+                                           output_shape=tf.shape(self.y), stride=8, name="logits")
             ### transpose end ###
 
         self.pred = tf.argmax(logits, axis=3, name="pred")
@@ -127,7 +125,7 @@ class VGG16:
         with tf.variable_scope("VGG16", reuse=tf.AUTO_REUSE):
             if shape is not None:
                 conv_filter = self.get_conv_filter(shape=shape, name=name, with_bn=False)
-                conv_bias = self.get_bias(shape=shape[3], name=name)
+                conv_bias = self.get_bias(shape=shape[2], name=name)
             elif name in self.data_dict.keys():
                 conv_filter = self.get_conv_filter(name=name, with_bn=False)
                 conv_bias = self.get_bias(name=name)
