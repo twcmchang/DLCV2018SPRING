@@ -6,13 +6,15 @@ python3 train --init_from <pretrained npy> --save_dir <model checkpoint dir> --m
 ```
 - mode = FCN32s
 - batch size = 32
-- num of epoch = 135
+- early stopping patience = 50
 - learning rate is 1e-4 and half per 2000 steps
 - without dropout and weight decay
 - input dimension = (256, 256, 3)
 - output dimension = (256, 256, 3) and then resize to (512, 512, 3)
 
-Baseline FCN32s model's mIoU = 0.656
+| FCN32s | FCN16s | FCN8s |
+|--------|--------|-------|
+| 0.656  | 0.668  | 0.673 |
 
 
 ## 2. Test
