@@ -9,4 +9,6 @@ Author: d05921027 Chun-Min Chang, twcmchang@gmail.com
 
 - HW 2: kernel method; color and texture segmentation; recognition with bag of visual words [(link)](https://github.com/twcmchang/DLCV2018SPRING/blob/master/hw2/md/hw2_d05921027.md)
 
+- HW 3: semantic segmentation of satellite images [repo](https://github.com/twcmchang/DLCV2018SPRING/blob/master/hw3/)
+
 -------
