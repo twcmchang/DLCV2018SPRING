@@ -2,46 +2,44 @@ import os
 import time
 import argparse
 import numpy as np
-import pandas as pd
 import tensorflow as tf
 
+import skimage.transform
+import imageio
+
 from model import VGG16
-from utils import read_images, read_masks
+from utils import read_images, read_masks, read_list, label2rgb
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--init_from', type=str, default='vgg16.npy', help='pre-trained weights')
+    parser.add_argument('--test_dir', type=str, default='hw3-train-validation/validation/', help='testing file directory')
+    parser.add_argument('--init_from', type=str, default='keras-vgg16.npy', help='pre-trained weights')
     parser.add_argument('--save_dir', type=str, default=None, help='directory to store checkpointed models')
-    parser.add_argument('--dataset', type=str, default='CIFAR-10', help='dataset in use')
-    parser.add_argument('--prof_type', type=str, default='all-one', help='type of profile coefficient')
-    parser.add_argument('--output', type=str, default='output.csv', help='output filename (csv)')
-    parser.add_argument('--keep_prob', type=float, default=1.0, help='dropout keep probability for fc layer')
-    parser.add_argument('--fidelity', type=float, default=None, help='fidelity in use') 
+    parser.add_argument('--plot_dir', type=str, default='pred', help='dataset in use')
 
     FLAG = parser.parse_args()
+
+    print("===== create directory =====")
+    if not os.path.exists(FLAG.plot_dir):
+        os.makedirs(FLAG.plot_dir)
     test(FLAG)
 
 def test(FLAG):
     print("Reading dataset...")
-    if FLAG.dataset == 'CIFAR-10':
-        test_data  = CIFAR10(train=False)
-        vgg16 = VGG16(classes=10)
-    elif FLAG.dataset == 'CIFAR-100':
-        test_data  = CIFAR100(train=False)
-        vgg16 = VGG16(classes=100)
-    else:
-        raise ValueError("dataset should be either CIFAR-10 or CIFAR-100.")
+    # load data
+    file_list = [FLAG.test_dir+file.replace('_sat.jpg','') for file in os.listdir(FLAG.test_dir) if file.endswith('_sat.jpg')]
+    file_list.sort()
+    Xtest, Ytest = read_list(file_list)
 
-    Xtest, Ytest = test_data.test_data, test_data.test_labels
+    vgg16 = VGG16(classes=7, shape=(256,256,3))
+    vgg16.build(vgg16_npy_path=FLAG.init_from)
 
-    if FLAG.fidelity is not None:
-        data_dict = np.load(FLAG.init_from, encoding='latin1').item()
-        data_dict = dpSparsifyVGG16(data_dict,FLAG.fidelity)
-        vgg16.build(vgg16_npy_path=data_dict, prof_type=FLAG.prof_type, conv_pre_training=True, fc_pre_training=True)
-        print("Build model from %s using dp=%s" % (FLAG.init_from, str(FLAG.fidelity*100)))
-    else:
-        vgg16.build(vgg16_npy_path=FLAG.init_from, prof_type=FLAG.prof_type, conv_pre_training=True, fc_pre_training=True)
-        print("Build full model from %s" % (FLAG.init_from))
+    def initialize_uninitialized(sess):
+        global_vars = tf.global_variables()
+        is_not_initialized = sess.run([tf.is_variable_initialized(var) for var in global_vars])
+        not_initialized_vars = [v for (v,f) in zip(global_vars, is_not_initialized) if not f]
+        if len(not_initialized_vars): 
+                sess.run(tf.variables_initializer(not_initialized_vars))
 
     with tf.Session() as sess:
         if FLAG.save_dir is not None:
@@ -50,8 +48,8 @@ def test(FLAG):
             ckpt = tf.train.get_checkpoint_state(FLAG.save_dir)
 
             if ckpt and ckpt.model_checkpoint_path:
-                saver.restore(sess, checkpoint)
-                print("Model restored %s" % checkpoint)
+                saver.restore(sess, ckpt.model_checkpoint_path)
+                print("Model restored %s" % ckpt.model_checkpoint_path)
                 sess.run(tf.global_variables())
             else:
                 print("No model checkpoint in %s" % FLAG.save_dir)
@@ -59,16 +57,16 @@ def test(FLAG):
             sess.run(tf.global_variables_initializer())
             sess.run(tf.global_variables())
         print("Initialized")
-        output = []
-        for dp_i in dp:
-            accu = sess.run(vgg16.accu_dict[str(int(dp_i*100))], feed_dict={vgg16.x: Xtest[:5000,:], vgg16.y: Ytest[:5000,:], vgg16.is_train: False})
-            accu2 = sess.run(vgg16.accu_dict[str(int(dp_i*100))], feed_dict={vgg16.x: Xtest[5000:,:], vgg16.y: Ytest[5000:,:], vgg16.is_train: False})
-            output.append((accu+accu2)/2)
-            print("At DP={dp:.4f}, accu={perf:.4f}".format(dp=dp_i, perf=(accu+accu2)/2))
-        res = pd.DataFrame.from_dict({'DP':[int(dp_i*100) for dp_i in dp],'accu':output})
-        res.to_csv(FLAG.output, index=False)
-        print("Write into %s" % FLAG.output)
 
+        print("Plot saved in %s" % FLAG.plot_dir)
+        for i, fname in enumerate(file_list):
+            Xplot = sess.run(vgg16.pred,feed_dict={vgg16.x: Xtest[i:(i+1),:],
+                                        vgg16.y: Ytest[i:(i+1),:],
+                                        vgg16.is_train: False})
+            saveimg = skimage.transform.resize(Xplot[0],output_shape=(512,512),order=0,preserve_range=True,clip=False)
+            saveimg = label2rgb(saveimg)
+            imageio.imwrite(os.path.join(FLAG.plot_dir,os.path.basename(fname)+"_mask.png"), saveimg)
+            print(os.path.join(FLAG.plot_dir,os.path.basename(fname)+"_mask.png"))
 
 if __name__ == '__main__':
 	main()
