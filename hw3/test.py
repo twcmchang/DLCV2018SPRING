@@ -14,6 +14,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--test_dir', type=str, default='hw3-train-validation/validation/', help='testing file directory')
     parser.add_argument('--init_from', type=str, default='keras-vgg16.npy', help='pre-trained weights')
+    parser.add_argument('--mode', type=str, default='FCN32s', help='FCN mode: FCN32s, FCN16s, FCN8s')
     parser.add_argument('--save_dir', type=str, default=None, help='directory to store checkpointed models')
     parser.add_argument('--plot_dir', type=str, default='pred', help='dataset in use')
 
@@ -32,7 +33,7 @@ def test(FLAG):
     Xtest, Ytest = read_list(file_list)
 
     vgg16 = VGG16(classes=7, shape=(256,256,3))
-    vgg16.build(vgg16_npy_path=FLAG.init_from)
+    vgg16.build(vgg16_npy_path=FLAG.init_from, mode=FLAG.mode)
 
     def initialize_uninitialized(sess):
         global_vars = tf.global_variables()
