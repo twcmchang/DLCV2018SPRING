@@ -1,3 +1,13 @@
+## Quick start
+- Baseline model (FCN32s)
+```
+./hw3.sh <test_image_directory> <plot_save_directory>
+```
+- Best model (FCN8s)
+```
+./hw3_best.sh <test_image_directory> <plot_save_directory>
+```
+
 
 ## 1. Train
 
@@ -9,18 +19,18 @@ python3 train --init_from <pretrained npy> --save_dir <model checkpoint dir> --m
 - early stopping patience = 50
 - learning rate is 1e-4 and half per 2000 steps
 - without dropout and weight decay
-- input dimension = (256, 256, 3)
+- input dimension  = (512, 512, 3) and then resize to (256, 256, 3)
 - output dimension = (256, 256, 3) and then resize to (512, 512, 3)
 
 | FCN32s | FCN16s | FCN8s |
 |--------|--------|-------|
-| 0.656  | 0.668  | 0.673 |
+| 0.656  | 0.683  | 0.687 |
 
 
 ## 2. Test
 
 ```
-python3 test.py --test_dir <testing data dir> --save_dir <model checkpoint dir> --plot_dir <plot dir>
+python3 test.py --test_dir <testing data dir> --save_dir <model checkpoint dir> --plot_dir <plot dir> --mode <FCN8s, FCN16s, or FCN32s>
 ```
 
 ## 3. Evaluate (mIoU), provided by TAs
