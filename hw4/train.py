@@ -177,7 +177,7 @@ def train(FLAG):
             bar_train.finish()
             bar_val.finish()
 
-            print("Epoch %s (%s), %s sec >> train loss: %.4f, train accu: %.4f, val loss: %.4f, val accu: %.4f" % (epoch_counter, patience_counter, round(time.time()-stime,2), train_loss, train_accu, val_loss, val_accu))
+            print("Epoch %s (%s), %s sec >> train loss: %.4f, train recon loss: %.4f, train kl loss: %.4f, val loss: %.4f, val recon loss: %.4f, val kl loss: %.4f" % (epoch_counter, patience_counter, round(time.time()-stime,2), train_loss, train_reconstruction_loss, train_kl_loss, val_loss, val_reconstruction_loss ,val_kl_loss))
         
         # para_dict = sess.run(vgg16.para_dict)
         # np.save(os.path.join(FLAG.save_dir, "para_dict.npy"), para_dict)
