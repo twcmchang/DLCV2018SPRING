@@ -45,10 +45,9 @@ class VAE:
         logvar = self.dense_layer(flatten, n_hidden=self.n_dim, name='logvar')
         
         # sample
-        if self.is_train:
-            epsilon = tf.random_normal([self.net_shape['flatten'][0], self.n_dim])
-        else:
-            epsilon = tf.zeros([self.net_shape['flatten'][0], self.n_dim])
+        epsilon = tf.cond(self.is_train,
+                            tf.random_normal([self.net_shape['flatten'][0], self.n_dim]), 
+                            tf.zeros([self.net_shape['flatten'][0], self.n_dim]))
         
         # mean + eps * sd, where sd = exp(0.5*logvar)
         sample_input = tf.add(mean, tf.multiply(epsilon, tf.exp(0.5*logvar)))
