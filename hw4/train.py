@@ -23,7 +23,7 @@ def main():
     parser.add_argument('--save_dir', type=str, default='save', help='directory to store checkpointed models')
     parser.add_argument('--lr', type=float, default=1e-4, help='starting learning rate')
     parser.add_argument('--n_dim', type=int, default=512, help='dimension of hidden code')
-    parser.add_argument('--lambda_kl', type=float, default=1e-5, help='weight of KL divergence loss')
+    parser.add_argument('--lambda_KL', type=float, default=1e-5, help='weight of KL divergence loss')
     parser.add_argument('--batch_size', type=int, default=64, help='batch size')
     parser.add_argument('--note', type=str, default='', help='argument for taking notes')
 
