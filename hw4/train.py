@@ -58,6 +58,7 @@ def train(FLAG):
         sess.run(tf.global_variables_initializer())
 
         # hyper parameters
+        batch_size = FLAG.batch_size
         epoch = 500
         early_stop_patience = 50
         min_delta = 0.0001
