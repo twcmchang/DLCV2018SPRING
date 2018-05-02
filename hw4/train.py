@@ -24,6 +24,7 @@ def main():
     parser.add_argument('--lr', type=float, default=1e-4, help='starting learning rate')
     parser.add_argument('--n_dim', type=int, default=512, help='dimension of hidden code')
     parser.add_argument('--lambda_kl', type=float, default=1e-5, help='weight of KL divergence loss')
+    parser.add_argument('--batch_size', type=int, default=64, help='batch size')
     parser.add_argument('--note', type=str, default='', help='argument for taking notes')
 
     FLAG = parser.parse_args()
@@ -40,8 +41,8 @@ def train(FLAG):
     Xtrain, df_train = read_dataset(TRAIN_CSV, TRAIN_DIR)
     Xtest , df_test  = read_dataset(TEST_CSV , TEST_DIR)
 
-    vae = VAE(n_dim=FLAG.n_dim, shape=Xtrain.shape[1:])
-    vae.build(lambda_KL=FLAG.lambda_KL)
+    vae = VAE()
+    vae.build(lambda_KL=FLAG.lambda_KL,n_dim=FLAG.n_dim, batch_size=FLAG.batch_size, shape=Xtrain.shape[1:])
 
     saver = tf.train.Saver(tf.global_variables(), max_to_keep=1)
     checkpoint_path = os.path.join(FLAG.save_dir, 'model.ckpt')
@@ -57,7 +58,6 @@ def train(FLAG):
         sess.run(tf.global_variables_initializer())
 
         # hyper parameters
-        batch_size = 32
         epoch = 500
         early_stop_patience = 50
         min_delta = 0.0001
