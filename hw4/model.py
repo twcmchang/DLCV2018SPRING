@@ -34,10 +34,10 @@ class VAE:
         assert self.x.get_shape().as_list()[1:] == [self.H, self.W, self.C]
 
         # conv
-        conv1 = self.conv_bn_layer(self.x, shape=(4,4,32), stride=2, name="conv1")
-        conv2 = self.conv_bn_layer(conv1 , shape=(4,4,64), stride=2, name="conv2")
-        conv3 = self.conv_bn_layer(conv2 , shape=(4,4,128), stride=2, name="conv3")
-        conv4 = self.conv_bn_layer(conv3 , shape=(4,4,256), stride=2, name="conv4")
+        conv1 = self.conv_bn_layer(self.x, shape=(4,4,3,32), stride=2, name="conv1")
+        conv2 = self.conv_bn_layer(conv1 , shape=(4,4,32,64), stride=2, name="conv2")
+        conv3 = self.conv_bn_layer(conv2 , shape=(4,4,64,128), stride=2, name="conv3")
+        conv4 = self.conv_bn_layer(conv3 , shape=(4,4,128,256), stride=2, name="conv4")
         flatten = self.flatten_layer(conv4, name='flatten')
 
         # mean and logvar
@@ -56,10 +56,14 @@ class VAE:
         # deconv
         deconv_fc1 = self.dense_layer(sample_input, n_hidden=self.net_shape['flatten'][1], name='deconv_fc1')
         deconv_input = tf.reshape(deconv_fc1, shape=self.net_shape['conv4'])
-        deconv1 = self.trans_conv_layer(deconv_input, output_shape=self.net_shape['conv3'], stride=2, name='deconv1')
-        deconv2 = self.trans_conv_layer(deconv1, output_shape=self.net_shape['conv2'], stride=2, name='deconv2')
-        deconv3 = self.trans_conv_layer(deconv2, output_shape=self.net_shape['conv1'], stride=2, name='deconv3')
-        self.output = self.trans_conv_layer(deconv3, output_shape=self.x, activation='tanh', stride=2, name='output')
+        deconv1 = self.trans_conv_layer(bottom=deconv_input, shape=(4,4,128,256),
+                                        output_shape=self.net_shape['conv3'], stride=2, name='deconv1')
+        deconv2 = self.trans_conv_layer(bottom=deconv1, shape=(4,4,64,128),
+                                        output_shape=self.net_shape['conv2'], stride=2, name='deconv2')
+        deconv3 = self.trans_conv_layer(bottom=deconv2, shape=(4,4,32,64),
+                                        output_shape=self.net_shape['conv1'], stride=2, name='deconv3')
+        self.output = self.trans_conv_layer(bottom=deconv3, shape=(4,4,3,32),
+                                            output_shape=self.x, activation='tanh', stride=2, name='output')
 
         reconstruction_loss = tf.losses.mean_squared_error(labels=self.x,predictions=self.output)
         KL_loss = -0.5*(tf.subtract(tf.add(1, logvar), tf.add(tf.square(mean), tf.exp(logvar))))
