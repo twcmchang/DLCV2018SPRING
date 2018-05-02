@@ -69,11 +69,11 @@ class VAE():
                                             output_shape=(self.batch_size, self.H, self.W, self.C), activation='tanh', stride=2, name='deconv_output')
 
         reconstruction_loss = tf.losses.mean_squared_error(labels=self.x,predictions=self.output)
-        KL_loss = -0.5*(tf.subtract(tf.add(1.0, logvar), tf.add(tf.square(mean), tf.exp(logvar))))
+        KL_loss = tf.reduce_mean(-0.5*(tf.subtract(tf.add(1.0, logvar), tf.add(tf.square(mean), tf.exp(logvar)))))
         self.loss = dict()
         self.loss['reconstruction'] = reconstruction_loss
         self.loss['KL_loss'] = KL_loss
-        self.train_op = tf.reduce_mean(reconstruction_loss) + self.lambda_KL*tf.reduce_mean(KL_loss)
+        self.train_op = reconstruction_loss + self.lambda_KL*KL_loss
 
     def dense_layer(self, bottom, n_hidden=None, name=None):
         bottom_shape = bottom.get_shape().as_list()
