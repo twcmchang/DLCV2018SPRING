@@ -35,6 +35,7 @@ class VAE():
         
         # normalize inputs
         self.x = (self.x-128.0)/128.0
+        self.y = (self.y-128.0)/128.0
         assert self.x.get_shape().as_list()[1:] == [self.H, self.W, self.C]
 
         # conv
@@ -68,7 +69,7 @@ class VAE():
         self.output = self.trans_conv_layer(bottom=deconv3, shape=(4,4,3,32),
                                             output_shape=(self.batch_size, self.H, self.W, self.C), activation='tanh', stride=2, name='deconv_output')
 
-        reconstruction_loss = tf.losses.mean_squared_error(labels=self.x,predictions=self.output)
+        reconstruction_loss = tf.reduce_mean(tf.square(tf.subtract(self.x, self.output))) #tf.losses.mean_squared_error(labels=self.x, predictions=self.output)
         KL_loss = tf.reduce_mean(-0.5*(tf.subtract(tf.add(1.0, logvar), tf.add(tf.square(mean), tf.exp(logvar)))))
         self.loss = dict()
         self.loss['reconstruction'] = reconstruction_loss
@@ -148,9 +149,11 @@ class VAE():
         self.net_shape[name] = conv.get_shape().as_list()
 
         if activation=='tanh':
+            print('tanh')
             tanh = tf.nn.tanh(conv)
             return tanh
         else:
+            print('relu')
             relu = tf.nn.relu(conv)
             return relu
 
@@ -187,9 +190,11 @@ class VAE():
         self.net_shape[name] = conv.get_shape().as_list()
 
         if activation=='tanh':
+            print('tanh')
             tanh = tf.nn.tanh(conv)
             return tanh
         else:
+            print('relu')
             relu = tf.nn.relu(conv)
             return relu
 

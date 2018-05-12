@@ -118,11 +118,23 @@ def train(FLAG):
                                     feed_dict={vae.x: Xtrain[st:ed,:],
                                                 vae.y: Xtrain[st:ed,:],
                                                 vae.is_train: True})
+                print(loss)
+                print(reconstruction_loss)
+                print(kl_loss)
                 train_loss += loss
                 train_reconstruction_loss += reconstruction_loss
                 train_kl_loss += kl_loss
                 ptrain.value +=1
                 ptrain.description = "Training %s/%s" % (ptrain.value, ptrain.max)
+
+                output = sess.run([vae.output],
+                                feed_dict={vae.x: Xtrain[0:64,:],
+                                            vae.y: Xtrain[0:64,:],
+                                            vae.is_train: False})
+                
+                print("=== train data ====")
+                print(output)
+                #print((Xtrain[0,:]-128.0)/128.0)
             train_loss = train_loss/ptrain.value
             train_reconstruction_loss = train_reconstruction_loss/ptrain.value
             train_kl_loss = train_kl_loss/ptrain.value

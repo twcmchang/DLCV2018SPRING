@@ -10,7 +10,7 @@ def read_dataset(csvfile, directory):
     images = []
     for filename in df.image_name.values:
         img = imageio.imread(filename)
-        images.append(img)
+        images.append(img/255.0)
     return np.array(images, dtype=np.float32), df
 
 # def read_train_dataset():
