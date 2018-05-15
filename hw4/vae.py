@@ -1,5 +1,3 @@
-# %load model.py
-# %load model.py
 import os
 import time
 import numpy as np
@@ -13,33 +11,45 @@ class VAE():
         self.data_dict = np.load(npy_path, encoding='latin1').item()
         print("Load %s as self.data_dict" % npy_path)
 
-    def build(self, n_dim=512, lambda_KL=1e-5, batch_size = 64, shape=(64,64,3)):
+    def build(self, n_dim=512, lambda_kl=1e-5, shape=(64,64,3)):
         """
         load pre-trained weights from path
         :param vgg16_npy_path: file path of vgg16 pre-trained weights
         """
         # input information
         self.H, self.W, self.C = shape
-        self.batch_size = batch_size
         self.n_dim = n_dim
-        self.lambda_KL = lambda_KL
+        self.lambda_kl = lambda_kl
+        
         # parameter dictionary
         self.para_dict = dict()
         self.data_dict = dict()
         self.net_shape = dict()
 
         # input placeholder
-        self.x = tf.placeholder(tf.float32, [self.batch_size, self.H, self.W, self.C])
-        self.y = tf.placeholder(tf.float32, [self.batch_size, self.H, self.W, self.C])
+        self.x = tf.placeholder(tf.float32, [None, self.H, self.W, self.C])
         self.is_train = tf.placeholder(tf.bool)
+        self.random_sample = tf.placeholder(tf.float32, [None, self.n_dim])
         
         # normalize inputs
-        self.x = (self.x-128.0)/128.0
-        self.y = (self.y-128.0)/128.0
+        # self.x = self.x/255.0
         assert self.x.get_shape().as_list()[1:] == [self.H, self.W, self.C]
-
+        
+        with tf.variable_scope("VAE",reuse=tf.AUTO_REUSE):
+            self.mean, self.logvar = self.encoder(self.x)
+            self.sample = self.sampler(self.mean, self.logvar)
+            self.output_image = self.decoder(self.sample)
+            
+            self.recon_loss = tf.reduce_mean(tf.square(tf.subtract(self.x, self.output_image)), [1,2,3])
+            self.kl_loss = 0.5*tf.reduce_mean(tf.subtract(tf.add(tf.square(self.mean), tf.exp(self.logvar)), tf.add(1.0, self.logvar)),1)
+            self.vae_loss = self.recon_loss + self.lambda_kl*self.kl_loss
+            
+            # Sampling from random z
+            self.random_sample_images = self.decoder(self.random_sample)
+    
+    def encoder(self, input_image):
         # conv
-        conv1 = self.conv_bn_layer(self.x, shape=(4,4,3,32), stride=2, name="conv1")
+        conv1 = self.conv_bn_layer(input_image, shape=(4,4,3,32), stride=2, name="conv1")
         conv2 = self.conv_bn_layer(conv1 , shape=(4,4,32,64), stride=2, name="conv2")
         conv3 = self.conv_bn_layer(conv2 , shape=(4,4,64,128), stride=2, name="conv3")
         conv4 = self.conv_bn_layer(conv3 , shape=(4,4,128,256), stride=2, name="conv4")
@@ -48,45 +58,38 @@ class VAE():
         # mean and logvar
         mean = self.dense_layer(flatten, n_hidden=self.n_dim, name='mean')
         logvar = self.dense_layer(flatten, n_hidden=self.n_dim, name='logvar')
-        
-        # sample
-        epsilon = tf.cond(self.is_train,
-                            lambda:tf.random_normal(shape=logvar.get_shape()), 
-                            lambda:tf.zeros(shape=logvar.get_shape()))
-        
-        # mean + eps * sd, where sd = exp(0.5*logvar)
-        sample_input = tf.add(mean, tf.multiply(epsilon, tf.exp(0.5*logvar)))
+        return mean, logvar
 
-        # deconv
+    def sampler(self, mean, logvar):
+        eps = tf.random_normal(shape=tf.shape(mean))
+        return mean + tf.exp(logvar / 2) * eps
+        
+    def decoder(self, sample_input):
         deconv_fc1 = self.dense_layer(sample_input, n_hidden=self.net_shape['flatten'][1], name='deconv_fc1')
-        deconv_input = tf.reshape(deconv_fc1, shape=self.net_shape['conv4'])
+        deconv_input = tf.reshape(deconv_fc1, shape=[-1, 4, 4, 256])
+        
+        batch_size = tf.shape(sample_input)[0]
+        
         deconv1 = self.trans_conv_layer(bottom=deconv_input, shape=(4,4,128,256),
-                                        output_shape=self.net_shape['conv3'], stride=2, name='deconv1')
+                                        output_shape=[batch_size, 8, 8, 128], stride=2, name='deconv1')
         deconv2 = self.trans_conv_layer(bottom=deconv1, shape=(4,4,64,128),
-                                        output_shape=self.net_shape['conv2'], stride=2, name='deconv2')
+                                        output_shape=[batch_size, 16, 16, 64], stride=2, name='deconv2')
         deconv3 = self.trans_conv_layer(bottom=deconv2, shape=(4,4,32,64),
-                                        output_shape=self.net_shape['conv1'], stride=2, name='deconv3')
-        self.output = self.trans_conv_layer(bottom=deconv3, shape=(4,4,3,32),
-                                            output_shape=(self.batch_size, self.H, self.W, self.C), activation='tanh', stride=2, name='deconv_output')
-
-        reconstruction_loss = tf.reduce_mean(tf.square(tf.subtract(self.x, self.output))) #tf.losses.mean_squared_error(labels=self.x, predictions=self.output)
-        KL_loss = tf.reduce_mean(-0.5*(tf.subtract(tf.add(1.0, logvar), tf.add(tf.square(mean), tf.exp(logvar)))))
-        self.loss = dict()
-        self.loss['reconstruction'] = reconstruction_loss
-        self.loss['KL_loss'] = KL_loss
-        self.train_op = reconstruction_loss + self.lambda_KL*KL_loss
+                                        output_shape=[batch_size, 32, 32, 32], stride=2, name='deconv3')
+        output = self.trans_conv_layer(bottom=deconv3, shape=(4,4,3,32),
+                                        output_shape=[batch_size, self.H, self.W, self.C], activation='tanh', stride=2, name='deconv_output')
+        return (output/2) + 0.5
 
     def dense_layer(self, bottom, n_hidden=None, name=None):
         bottom_shape = bottom.get_shape().as_list()
-        with tf.variable_scope("VAE", reuse=tf.AUTO_REUSE):
-            if n_hidden is not None:
-                W = self.get_weights(shape=(bottom_shape[1], n_hidden), name=name)
-                b = self.get_bias(shape=n_hidden, name=name)
-            elif name in self.data_dict.keys():
-                W = self.get_weights(name=name)
-                b = self.get_bias(name=name)
-            else:
-                print("Neither give a shape nor lack a pre-trained layer called %s" % name)
+        if n_hidden is not None:
+            W = self.get_weights(shape=(bottom_shape[1], n_hidden), name=name)
+            b = self.get_bias(shape=n_hidden, name=name)
+        elif name in self.data_dict.keys():
+            W = self.get_weights(name=name)
+            b = self.get_bias(name=name)
+        else:
+            print("Neither give a shape nor lack a pre-trained layer called %s" % name)
         self.para_dict[name] = [W, b]
         fc = tf.nn.bias_add(tf.matmul(bottom, W), b)
         self.net_shape[name] = fc.get_shape().as_list()
@@ -118,16 +121,15 @@ class VAE():
             return bottom
 
     def trans_conv_layer(self, bottom, output_shape, stride, activation='relu', name=None, shape=None):
-        with tf.variable_scope("VAE", reuse=tf.AUTO_REUSE):
-            if shape is not None:
-                conv_filter, gamma, beta, bn_mean, bn_variance = self.get_conv_filter(shape=shape, name=name)
-                conv_bias = self.get_bias(shape=shape[2], name=name)
-            elif name in self.data_dict.keys():
-                conv_filter, gamma, beta, bn_mean, bn_variance = self.get_conv_filter(name=name)
-                conv_bias = self.get_bias(name=name)
-            else:
-                print("Neither give a shape nor lack a pre-trained layer called %s" % name)
-        
+        if shape is not None:
+            conv_filter, gamma, beta, bn_mean, bn_variance = self.get_conv_filter(shape=shape, name=name)
+            conv_bias = self.get_bias(shape=shape[2], name=name)
+        elif name in self.data_dict.keys():
+            conv_filter, gamma, beta, bn_mean, bn_variance = self.get_conv_filter(name=name)
+            conv_bias = self.get_bias(name=name)
+        else:
+            print("Neither give a shape nor lack a pre-trained layer called %s" % name)
+
         self.para_dict[name] = [conv_filter, conv_bias]
         self.para_dict[name+"_gamma"] = gamma
         self.para_dict[name+"_beta"] = beta
@@ -153,21 +155,19 @@ class VAE():
             tanh = tf.nn.tanh(conv)
             return tanh
         else:
-            print('relu')
-            relu = tf.nn.relu(conv)
+            relu = tf.nn.leaky_relu(conv)
             return relu
 
-    def conv_bn_layer(self, bottom, stride=1, activation='relu', name=None, shape=None):
-        with tf.variable_scope("VAE",reuse=tf.AUTO_REUSE):
-            if shape is not None:
-                conv_filter, gamma, beta, bn_mean, bn_variance = self.get_conv_filter(shape=shape, name=name)
-                conv_bias = self.get_bias(shape=shape[3], name=name)
-            elif name in self.data_dict.keys():
-                conv_filter, gamma, beta, bn_mean, bn_variance = self.get_conv_filter(name=name)
-                conv_bias = self.get_bias(name=name)
-            else:
-                print("Neither give a shape nor lack a pre-trained layer called %s" % name)
-        
+    def conv_bn_layer(self, bottom, stride=1, activation='lrelu', name=None, shape=None):
+        if shape is not None:
+            conv_filter, gamma, beta, bn_mean, bn_variance = self.get_conv_filter(shape=shape, name=name)
+            conv_bias = self.get_bias(shape=shape[3], name=name)
+        elif name in self.data_dict.keys():
+            conv_filter, gamma, beta, bn_mean, bn_variance = self.get_conv_filter(name=name)
+            conv_bias = self.get_bias(name=name)
+        else:
+            print("Neither give a shape nor lack a pre-trained layer called %s" % name)
+
         self.para_dict[name] = [conv_filter, conv_bias]
         self.para_dict[name+"_gamma"] = gamma
         self.para_dict[name+"_beta"] = beta
@@ -190,12 +190,10 @@ class VAE():
         self.net_shape[name] = conv.get_shape().as_list()
 
         if activation=='tanh':
-            print('tanh')
             tanh = tf.nn.tanh(conv)
             return tanh
         else:
-            print('relu')
-            relu = tf.nn.relu(conv)
+            relu = tf.nn.leaky_relu(conv)
             return relu
 
     def get_conv_filter(self, shape=None, name=None, with_bn=True):
@@ -219,19 +217,19 @@ class VAE():
                 gamma = tf.get_variable(shape=(O,), initializer=tf.ones_initializer(), name=name+"_gamma")
 
             if name+"_beta" in self.data_dict.keys(): 
-                beta = tf.get_variable(initializer=self.data_dict[name+"_beta"], name=name+"_beta", trainable=False)
+                beta = tf.get_variable(initializer=self.data_dict[name+"_beta"], name=name+"_beta")
             else:
                 beta = tf.get_variable(shape=(O,), initializer=tf.zeros_initializer(), name=name+'_beta')
 
             if name+"_bn_mean" in self.data_dict.keys(): 
-                bn_mean = tf.get_variable(initializer=self.data_dict[name+"_bn_mean"], name=name+"_bn_mean", trainable=False)
+                bn_mean = tf.get_variable(initializer=self.data_dict[name+"_bn_mean"], name=name+"_bn_mean")
             else:
-                bn_mean = tf.get_variable(shape=(O,), initializer=tf.zeros_initializer(), name=name+'_bn_mean', trainable=False)
+                bn_mean = tf.get_variable(shape=(O,), initializer=tf.zeros_initializer(), name=name+'_bn_mean')
 
             if name+"_bn_variance" in self.data_dict.keys(): 
-                bn_variance = tf.get_variable(initializer=self.data_dict[name+"_bn_variance"], name=name+"_bn_variance", trainable=False)
+                bn_variance = tf.get_variable(initializer=self.data_dict[name+"_bn_variance"], name=name+"_bn_variance")
             else:
-                bn_variance = tf.get_variable(shape=(O,), initializer=tf.ones_initializer(), name=name+'_bn_variance', trainable=False)
+                bn_variance = tf.get_variable(shape=(O,), initializer=tf.ones_initializer(), name=name+'_bn_variance')
             return conv_filter, gamma, beta, bn_mean, bn_variance
         else:
             return conv_filter
