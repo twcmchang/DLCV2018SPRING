@@ -1,6 +1,6 @@
 import os
 import numpy as np
-import imageio
+import skimage.io as imageio
 import skimage.transform
 
 
@@ -78,7 +78,7 @@ def label2rgb(label_mask):
     final_rgb_mask = (np.dstack((rgb_mask//4,rgb_mask%4//2,rgb_mask%4%2))*255)
     return np.array(final_rgb_mask,dtype=np.uint8)
 
-def read_list(track):
+def read_list(track, with_mask=True):
     n_images = len(track)
     Xtrack = np.empty((n_images, 256, 256, 3))
     for i, file in enumerate(track):
@@ -86,12 +86,16 @@ def read_list(track):
         img = img.astype(int)
         img = skimage.transform.resize(img,output_shape=(256,256),order=0,preserve_range=True,clip=False)
         Xtrack[i] = img
+        
+    if with_mask:
+        n_images = len(track)
+        Ytrack = np.empty((n_images, 256, 256, 7))
+        for i, file in enumerate(track):
+            mask = imageio.imread(file+"_mask.png")
+            mask = skimage.transform.resize(mask,output_shape=(256,256),order=0,preserve_range=True,clip=False)
+            label_mask = rgb2label(mask)
+            Ytrack[i,:] = label2onehot(label_mask)
+        return Xtrack, Ytrack
+    else:
+        return Xtrack
 
-    n_images = len(track)
-    Ytrack = np.empty((n_images, 256, 256, 7))
-    for i, file in enumerate(track):
-        mask = imageio.imread(file+"_mask.png")
-        mask = skimage.transform.resize(mask,output_shape=(256,256),order=0,preserve_range=True,clip=False)
-        label_mask = rgb2label(mask)
-        Ytrack[i,:] = label2onehot(label_mask)
-    return Xtrack, Ytrack

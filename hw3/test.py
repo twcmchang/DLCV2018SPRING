@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 
 import skimage.transform
-import imageio
+import skimage.io as imageio
 
 from model import VGG16
 from utils import read_images, read_masks, read_list, label2rgb
@@ -30,7 +30,7 @@ def test(FLAG):
     # load data
     file_list = [FLAG.test_dir+file.replace('_sat.jpg','') for file in os.listdir(FLAG.test_dir) if file.endswith('_sat.jpg')]
     file_list.sort()
-    Xtest, Ytest = read_list(file_list)
+    Xtest = read_list(file_list, with_mask=False)
 
     vgg16 = VGG16(classes=7, shape=(256,256,3))
     vgg16.build(vgg16_npy_path=FLAG.init_from, mode=FLAG.mode)
@@ -62,11 +62,11 @@ def test(FLAG):
         print("Plot saved in %s" % FLAG.plot_dir)
         for i, fname in enumerate(file_list):
             Xplot = sess.run(vgg16.pred,feed_dict={vgg16.x: Xtest[i:(i+1),:],
-                                        vgg16.y: Ytest[i:(i+1),:],
+                                        #vgg16.y: Ytest[i:(i+1),:],
                                         vgg16.is_train: False})
             saveimg = skimage.transform.resize(Xplot[0],output_shape=(512,512),order=0,preserve_range=True,clip=False)
             saveimg = label2rgb(saveimg)
-            imageio.imwrite(os.path.join(FLAG.plot_dir,os.path.basename(fname)+"_mask.png"), saveimg)
+            imageio.imsave(os.path.join(FLAG.plot_dir,os.path.basename(fname)+"_mask.png"), saveimg)
             print(os.path.join(FLAG.plot_dir,os.path.basename(fname)+"_mask.png"))
 
 if __name__ == '__main__':

@@ -183,29 +183,29 @@ def train(FLAG):
         # np.save(os.path.join(FLAG.save_dir, "para_dict.npy"), para_dict)
         # print("save in %s" % os.path.join(FLAG.save_dir, "para_dict.npy"))
 
-        FLAG.optimizer = opt_type
-        FLAG.lr = start_learning_rate
-        FLAG.batch_size = batch_size
-        FLAG.epoch_end = epoch_counter
-        FLAG.val_loss = current_best_val_loss
+        # FLAG.optimizer = opt_type
+        # FLAG.lr = start_learning_rate
+        # FLAG.batch_size = batch_size
+        # FLAG.epoch_end = epoch_counter
+        # FLAG.val_loss = current_best_val_loss
 
-        header = ''
-        row = ''
-        for key in sorted(vars(FLAG)):
-            if header is '':
-                header = key
-                row = str(getattr(FLAG, key))
-            else:
-                header += ","+key
-                row += ","+str(getattr(FLAG,key))
-        row += "\n"
-        if os.path.exists("/home/cmchang/DLCV2018SPRING/hw3/model.csv"):
-            with open("/home/cmchang/DLCV2018SPRING/hw3/model.csv", "a") as myfile:
-                myfile.write(row)
-        else:
-            with open("/home/cmchang/DLCV2018SPRING/hw3/model.csv", "w") as myfile:
-                myfile.write(header)
-                myfile.write(row)
+        # header = ''
+        # row = ''
+        # for key in sorted(vars(FLAG)):
+        #     if header is '':
+        #         header = key
+        #         row = str(getattr(FLAG, key))
+        #     else:
+        #         header += ","+key
+        #         row += ","+str(getattr(FLAG,key))
+        # row += "\n"
+        # if os.path.exists("/home/cmchang/DLCV2018SPRING/hw3/model.csv"):
+        #     with open("/home/cmchang/DLCV2018SPRING/hw3/model.csv", "a") as myfile:
+        #         myfile.write(row)
+        # else:
+        #     with open("/home/cmchang/DLCV2018SPRING/hw3/model.csv", "w") as myfile:
+        #         myfile.write(header)
+        #         myfile.write(row)
 
 if __name__ == '__main__':
     main()

@@ -77,7 +77,7 @@ class VGG16:
         ### FCN8s
         if mode=="FCN32s":
             logits = self.trans_conv_layer(bottom=conv8, shape=(64, 64, self.classes, self.classes), # (h, w, out, in)
-                                           output_shape=tf.shape(self.y), stride=32, name="logits")
+                                           output_shape=(tf.shape(self.x)[0], self.H, self.W, self.classes), stride=32, name="logits")
         elif mode=="FCN16s":
             shape1 = pool4.get_shape().as_list()
             trans_conv1 = self.trans_conv_layer(bottom=conv8, shape=(4, 4, shape1[3], self.classes), # (h, w, out, in)
@@ -86,7 +86,7 @@ class VGG16:
             
             #shapeX = tf.shape(self.x)
             logits = self.trans_conv_layer(bottom=fuse1, shape=(32, 32, self.classes, shape1[3]), # (h, w, out, in)
-                                           output_shape=tf.shape(self.y), stride=16, name="logits")
+                                           output_shape=(tf.shape(self.x)[0], self.H, self.W, self.classes), stride=16, name="logits")
         elif mode=="FCN8s":
             shape1 = pool4.get_shape().as_list()
             trans_conv1 = self.trans_conv_layer(bottom=conv8, shape=(4, 4, shape1[3], self.classes), 
@@ -99,15 +99,18 @@ class VGG16:
             fuse2 = tf.add(trans_conv2, pool3, name="fuse2")
 
             logits = self.trans_conv_layer(bottom=fuse2, shape=(16, 16, self.classes, shape2[3]), 
-                                           output_shape=tf.shape(self.y), stride=8, name="logits")
+                                           output_shape=(tf.shape(self.x)[0], self.H, self.W, self.classes), stride=8, name="logits")
             ### transpose end ###
-
         self.pred = tf.argmax(logits, axis=3, name="pred")
-        self.actual = tf.argmax(self.y, axis=3, name="answer")
-        
-        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=self.y)
-        self.loss = tf.reduce_mean(cross_entropy)
-        self.accuracy = tf.reduce_mean(tf.cast(tf.equal(x=self.pred, y=self.actual), tf.float32))
+
+        def train_operation():
+            self.actual = tf.argmax(self.y, axis=3, name="answer")
+            cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=self.y)
+            self.loss = tf.reduce_mean(cross_entropy)
+            self.accuracy = tf.reduce_mean(tf.cast(tf.equal(x=self.pred, y=self.actual), tf.float32))
+            return True
+
+        _ = tf.cond(self.is_train, train_operation, lambda: False)
 
     def avg_pool(self, bottom, name):
         return tf.nn.avg_pool(bottom, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name=name)
