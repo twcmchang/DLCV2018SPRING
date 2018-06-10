@@ -38,8 +38,8 @@ def train(FLAG):
     dtrain = pd.DataFrame.from_dict(train_list)
     dvalid = pd.DataFrame.from_dict(valid_list)
 
-    Xtrain = load_aggregate_frame("train_codes_full.pkl")
-    Xtest  = load_aggregate_frame("valid_codes_full.pkl")
+    Xtrain = load_aggregate_frame(FLAG.train_pkl_file)
+    Xtest  = load_aggregate_frame(FLAG.valid_pkl_file)
 
     Ytrain = np.array(dtrain.Action_labels).astype('int32')
     Ytest  = np.array(dvalid.Action_labels).astype('int32')
