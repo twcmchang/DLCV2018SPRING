@@ -150,6 +150,8 @@ class MQ1(Model):
             fc2 = self.dense_layer(bottom=fc1, name="fc2", shape=[2048, 768])
             fc2 = tf.contrib.layers.batch_norm(fc2, is_training=self.is_train, scope="bn2", decay=0.9, epsilon=1e-5, updates_collections=None, scale=True)
             fc2 = tf.nn.relu(fc2)
+
+            self.output = fc2
             
             self.logits = self.dense_layer(bottom=fc2, name="logits", shape=[768, output_dim])
             self.pred = tf.argmax(self.logits, axis=1, name="pred")
