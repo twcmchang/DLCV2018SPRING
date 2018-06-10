@@ -18,6 +18,7 @@ def main():
     parser.add_argument('--valid_pkl_file', type=str, default='valid_codes_full.pkl', help='directory to store checkpointed models')
     parser.add_argument('--valid_video_list', type=str, default='HW5_data/TrimmedVideos/label/gt_valid.csv', help='directory to store checkpointed models')   
     parser.add_argument('--save_dir', type=str, default='save_Q1/', help='directory of saveing model.ckpt')
+    parser.add_argument('--output_dir', type=str, default='', help='output directory')
     parser.add_argument('--run_tsne', type=bool, default=False, help='run tSNE to visualize learned features or not')
 
     FLAG = parser.parse_args()
@@ -68,14 +69,14 @@ def test(FLAG):
                             feed_dict={model.x: Xtest,
                                     model.is_train:False})
         
-        print("save p1_valid.txt")
-        np.savetxt(X=pred.astype(int), fname='p1_valid.txt', fmt='%s')
-        
+        np.savetxt(X=pred.astype(int), fname=os.path.join(FLAG.output_dir, 'p1_valid.txt'), fmt='%s')
+        print("save as %s" % os.path.join(FLAG.output_dir, 'p1_valid.txt'))
+
         if FLAG.run_tsne:
             from sklearn.manifold import TSNE
             cnn_tsne = TSNE(n_components=2, perplexity=30.0, random_state=5566).fit_transform(cnn_output)
             
-            print("save cnn_tsne.png")
+            
             labels = np.array(dvalid.Action_labels).astype('int32')
             plt.figure(0)
             for i in range(output_dim):
@@ -87,7 +88,9 @@ def test(FLAG):
             plt.ylabel("tSNE-2")
             plt.tight_layout()
             plt.show()
-            plt.savefig('cnn_tsne.png')
+            plt.savefig(os.path.join(FLAG.output_dir,'cnn_tsne.png'))
+
+            print("save as %s" % os.path.join(FLAG.output_dir,'cnn_tsne.png'))
 
 if __name__ == '__main__':
     main()
