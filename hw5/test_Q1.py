@@ -39,7 +39,7 @@ def test(FLAG):
 
     scope_name = "Q1"
     model = MQ1(scope_name=scope_name)
-    model.build(input_dim=Xtest.shape[1], output_dim=Ytest.shape[1])
+    model.build(input_dim=Xtest.shape[1], output_dim=11)
 
     def initialize_uninitialized(sess):
         global_vars = tf.global_variables()
