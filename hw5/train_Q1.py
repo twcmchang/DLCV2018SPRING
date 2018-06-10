@@ -4,8 +4,9 @@ import argparse
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-import matplotlib.pyplot as plt
+import matplotlib
 matplotlib.use('agg')
+import matplotlib.pyplot as plt
 import pickle
 
 from reader import getVideoList
@@ -101,7 +102,7 @@ def train(FLAG):
                 loss, accu , _, logits = sess.run([model.loss, model.accuracy, model.logits, train_op],
                                     feed_dict={model.x: Xtrain[st:ed],
                                                 model.y: Ytrain[st:ed],
-                                            model.is_train:True})
+                                                model.is_train:True})
                 train_loss += loss
                 train_accu += accu
             train_loss = train_loss/(Xtrain.shape[0]/batch_size)
@@ -114,7 +115,7 @@ def train(FLAG):
                 loss, accu , logits = sess.run([model.loss, model.accuracy, model.logits],
                                     feed_dict={model.x: Xtest[st:ed],
                                                 model.y: Ytest[st:ed],
-                                            model.is_train:False})
+                                                model.is_train:False})
                 val_loss += loss
                 val_accu += accu
             val_loss = val_loss/(Xtest.shape[0]/batch_size)
@@ -154,3 +155,6 @@ def train(FLAG):
     df[['train_accu', 'val_accu']].plot()
     plt.savefig(os.path.join(FLAG.save_dir, 'accu.png'))
     plt.close()
+
+if __name__ == '__main__':
+    main()

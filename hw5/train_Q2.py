@@ -4,8 +4,9 @@ import argparse
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-import matplotlib.pyplot as plt
+import matplotlib
 matplotlib.use('agg')
+import matplotlib.pyplot as plt
 import pickle
 
 from reader import getVideoList
@@ -162,3 +163,5 @@ def train(FLAG):
     plt.savefig(os.path.join(FLAG.save_dir, 'accu.png'))
     plt.close()
     
+if __name__ == '__main__':
+    main() 
