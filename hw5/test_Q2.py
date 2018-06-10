@@ -92,3 +92,6 @@ def test(FLAG):
             plt.show()
             plt.savefig('rnn_tsne.png')
             print("save rnn_tsne.png")
+
+if __name__ == '__main__':
+    main() 
