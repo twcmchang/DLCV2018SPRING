@@ -89,3 +89,6 @@ def test(FLAG):
             plt.tight_layout()
             plt.show()
             plt.savefig('cnn_tsne.png')
+
+if __name__ == '__main__':
+    main()
