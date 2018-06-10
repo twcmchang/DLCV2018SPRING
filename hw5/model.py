@@ -154,14 +154,9 @@ class MQ1(Model):
             self.logits = self.dense_layer(bottom=fc2, name="logits", shape=[768, output_dim])
             self.pred = tf.argmax(self.logits, axis=1, name="pred")
             
-            def train_operation():
-                self.true = tf.argmax(self.y, axis=1, name="true")
-                self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y, logits=self.logits, name='loss'))
-            
-                self.accuracy = tf.reduce_mean(tf.cast(tf.equal(x=self.pred, y=self.true), tf.float32))
-                return True
-
-            _ = tf.cond(self.is_train, train_operation, lambda: False)
+            self.true = tf.argmax(self.y, axis=1, name="true")
+            self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y, logits=self.logits, name='loss'))
+            self.accuracy = tf.reduce_mean(tf.cast(tf.equal(x=self.pred, y=self.true), tf.float32))
 
 class MQ2(Model):
     def __init__(self, scope_name=""):
@@ -214,7 +209,6 @@ class MQ2(Model):
             
             self.logits = self.dense_layer(bottom=fc1, name='logits', shape=[512, self.output_dim])
             self.loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=self.y, logits=self.logits, name='loss'))
-            
             
             self.pred = tf.argmax(self.logits, axis=1, name="pred")
             self.true = tf.argmax(self.y, axis=1, name="true")
