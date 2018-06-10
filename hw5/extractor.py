@@ -10,7 +10,7 @@ def main():
     parser.add_argument('--video_path', type=str, default='HW5_data/TrimmedVideos/video/train/', help='video path')
     parser.add_argument('--video_list', type=str, default='HW5_data/TrimmedVideos/label/gt_train.csv', help='video list')   
     parser.add_argument('--init', type=str, default='updated_keras_vgg16.npy', help='initialization of extractor')
-    parser.add_argument('--save_dir', type=str, default='', help='directory to save extracted features')
+    parser.add_argument('--save_dir', type=str, default='save/', help='directory to save extracted features')
     parser.add_argument('--filename', type=str, default='train_code_full.pkl', help='filename of extracted features')
 
     FLAG = parser.parse_args()
