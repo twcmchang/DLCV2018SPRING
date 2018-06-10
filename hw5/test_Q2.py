@@ -18,7 +18,7 @@ def main():
     parser.add_argument('--valid_pkl_file', type=str, default='save/valid_codes_full.pkl', help='directory to store checkpointed models')
     parser.add_argument('--valid_video_list', type=str, default='HW5_data/TrimmedVideos/label/gt_valid.csv', help='directory to store checkpointed models')   
     parser.add_argument('--save_dir', type=str, default='save_Q2/', help='directory of saveing model.ckpt')
-    parser.add_argument('--output_dir', type=str, default='', help='output directory')
+    parser.add_argument('--output_dir', type=str, default='save/', help='output directory')
     parser.add_argument('--run_tsne', type=bool, default=False, help='run tSNE to visualize learned features or not')
 
     FLAG = parser.parse_args()
