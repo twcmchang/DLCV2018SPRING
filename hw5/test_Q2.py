@@ -18,6 +18,7 @@ def main():
     parser.add_argument('--valid_pkl_file', type=str, default='valid_codes_full.pkl', help='directory to store checkpointed models')
     parser.add_argument('--valid_video_list', type=str, default='HW5_data/TrimmedVideos/label/gt_valid.csv', help='directory to store checkpointed models')   
     parser.add_argument('--save_dir', type=str, default='save_Q2/', help='directory of saveing model.ckpt')
+    parser.add_argument('--output_dir', type=str, default='', help='output directory')
     parser.add_argument('--run_tsne', type=bool, default=False, help='run tSNE to visualize learned features or not')
 
     FLAG = parser.parse_args()
@@ -72,8 +73,8 @@ def test(FLAG):
                                     model.seq_end_index: Xtest_end_index,
                                     model.is_train:False})
 
-        np.savetxt(X=pred.astype(int), fname='p2_result.txt',fmt='%s')
-        print("save p2_result.txt")
+        np.savetxt(X=pred.astype(int), fname=os.path.join(FLAG.output_dir, 'p2_result.txt'), fmt='%s')
+        print("save as %s" % os.path.join(FLAG.output_dir, 'p2_result.txt'))
 
         if FLAG.run_tsne:
             from sklearn.manifold import TSNE
@@ -90,8 +91,8 @@ def test(FLAG):
             plt.ylabel("tSNE-2")
             plt.tight_layout()
             plt.show()
-            plt.savefig('rnn_tsne.png')
-            print("save rnn_tsne.png")
+            plt.savefig(os.path.join(FLAG.output_dir, 'rnn_tsne.png'))
+            print("save as %s" % os.path.join(FLAG.output_dir, 'rnn_tsne.png'))
 
 if __name__ == '__main__':
     main() 
