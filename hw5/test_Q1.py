@@ -29,17 +29,16 @@ def main():
     test(FLAG)
 
 def test(FLAG):
-
+    output_dim = 11
     valid_list = getVideoList(FLAG.valid_video_list)
 
     dvalid = pd.DataFrame.from_dict(valid_list)
 
     Xtest  = load_aggregate_frame(FLAG.valid_pkl_file)
-    Ytest  = np.array(dvalid.Action_labels).astype('int32')
 
     scope_name = "Q1"
     model = MQ1(scope_name=scope_name)
-    model.build(input_dim=Xtest.shape[1], output_dim=11)
+    model.build(input_dim=Xtest.shape[1], output_dim=output_dim)
 
     def initialize_uninitialized(sess):
         global_vars = tf.global_variables()
@@ -79,7 +78,7 @@ def test(FLAG):
             print("save cnn_tsne.png")
             labels = np.array(dvalid.Action_labels).astype('int32')
             plt.figure(0)
-            for i in range(Xtest.shape[1]):
+            for i in range(output_dim):
                 xplot = cnn_tsne[np.where(labels==i)[0]]
                 plt.scatter(xplot[:,0], xplot[:,1], label=i)
             plt.legend()
