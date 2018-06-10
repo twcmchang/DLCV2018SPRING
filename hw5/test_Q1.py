@@ -73,7 +73,7 @@ def test(FLAG):
         
         if FLAG.run_tsne:
             from sklearn.manifold import TSNE
-            cnn_tsne = TSNE(n_components=2, perplexity=0.0, random_state=5566).fit_transform(cnn_output)
+            cnn_tsne = TSNE(n_components=2, perplexity=30.0, random_state=5566).fit_transform(cnn_output)
             
             print("save cnn_tsne.png")
             labels = np.array(dvalid.Action_labels).astype('int32')
