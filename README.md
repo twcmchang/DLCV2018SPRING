@@ -13,6 +13,6 @@ Author: d05921027 Chun-Min Chang, twcmchang@gmail.com
 
 - HW 4: conditional face generation via variational autoencoder and generative adversarial network [(repo)](https://github.com/twcmchang/DLCV2018SPRING/blob/master/hw4/)
 
-- HW 5: video action recognition using recurrent neural networks [(repo)]((https://github.com/twcmchang/DLCV2018SPRING/blob/master/hw5/))
+- HW 5: video action recognition using recurrent neural networks [(repo)](https://github.com/twcmchang/DLCV2018SPRING/blob/master/hw5/)
 
 -------
