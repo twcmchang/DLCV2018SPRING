@@ -141,7 +141,7 @@ class VGG16_flatten():
             conv5_3 = self.idp_conv_bn_layer(conv5_2, "conv5_3")
             pool5 = self.max_pool(conv5_3, 'pool5')
 
-            pool5 = self.f
+            pool5 = self.dropout_layer(pool5, self._keep_prob)
 
             logits = self.fc_layer(pool5, 'fc_2')       
             prob = tf.nn.softmax(logits, name="prob")
@@ -227,6 +227,8 @@ class VGG16_flatten():
                     self.net_shape.append(conv5_2.get_shape())
                     self.net_shape.append(pool5.get_shape())
                 
+                pool5 = self.dropout_layer(pool5, self._keep_prob)
+
                 logits = self.fc_layer(pool5, 'fc_2')
                 prob = tf.nn.softmax(logits, name="prob")
 
