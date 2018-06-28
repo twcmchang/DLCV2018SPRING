@@ -142,6 +142,8 @@ class VGG16_GAP:
             conv5_3 = self.idp_conv_bn_layer(conv5_2, "conv5_3")
             pool5 = self.global_avg_pool(conv5_3, 'pool5')
 
+            self.features = pool5
+
             pool5 = self.dropout_layer(pool5, self._keep_prob)
 
             logits = self.fc_layer(pool5, 'fc_2')       
@@ -227,6 +229,7 @@ class VGG16_GAP:
                     self.net_shape.append(conv5_1.get_shape())
                     self.net_shape.append(conv5_2.get_shape())
                     self.net_shape.append(pool5.get_shape())
+                    self.features = pool5
                 
                 pool5 = self.dropout_layer(pool5, self._keep_prob)
                 
