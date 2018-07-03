@@ -3,7 +3,6 @@ import time
 import numpy as np
 import tensorflow as tf
 
-VGG_MEAN = [103.939, 116.779, 123.68] # [B, G, R]
 class VGG16_GAP:
     def __init__(self, scope_name="VGG16"):
         """
@@ -20,12 +19,12 @@ class VGG16_GAP:
         self.prob_dict = {}
         self.loss_dict = {}
         self.accu_dict = {}
-        self.feature_dict = {}
 
         # parameter dictionary
         self.para_dict = {}
 
-    def build(self, vgg16_npy_path, 
+    def build(self,
+              vgg16_npy_path=None, 
               classes=10, 
               shape=(32,32,3), 
               prof_type=None, 
@@ -33,8 +32,15 @@ class VGG16_GAP:
               fc_pre_training=True,
               new_bn=True):
         """
-        load variable from npy to build the VGG
-        :param rgb: rgb image [batch, height, width, 3] values scaled [0, 1]
+        This function defines all the variables in a model for building computation graphs later.
+        
+        @param vgg16_npy_path    : either a path of model npy or a dictionary of weights
+        @param classes           : number of output class
+        @param shape             : input shape
+        @param prof_type         : monotonically decreasing basic function, {'linear', 'all-one','half-exp','harmonic'}
+        @param conv_pre_training : whether use pre-trained weights of conv_layers in vgg16_npy_path
+        @param fc_pre_training   : whether use pre-trained weights of fc_layers in vgg16_npy_path
+        @param new_bn            : whether renew the batch normalization parameters of conv_layer in vgg16_npy_path
         """
         
         # input information
@@ -53,70 +59,96 @@ class VGG16_GAP:
         if isinstance(vgg16_npy_path,dict):
             self.data_dict = vgg16_npy_path
             print("parameters loaded")
-        else:
+        elif isinstance(vgg16_npy_path, str):
             self.data_dict = np.load(vgg16_npy_path, encoding='latin1').item()
             print("npy file loaded")
+        else:
+            self.data_dict = dict()
+            print("no npy file")
 
         # input placeholder
         self.x = tf.placeholder(tf.float32, [None, self.H, self.W, self.C])
         self.y = tf.placeholder(tf.float32, [None, self.classes])
         self.is_train = tf.placeholder(tf.bool)
-        
-        self.x = tf.placeholder(tf.float32, [None, self.H, self.W, self.C])
-        self.is_train = tf.placeholder(tf.bool)
+        self.bn_train = tf.placeholder(tf.bool)
         
         self.x = self.x/255.0
         assert self.x.get_shape().as_list()[1:] == [self.H, self.W, self.C]
 
-        dp={
-            'conv1_1':1.00,
-            'conv1_2':1.00,
-            'conv2_1':1.00,
-            'conv2_2':1.00,
-            'conv3_1':1.00,
-            'conv3_2':1.00,
-            'conv3_3':1.00,
-            'conv4_1':1.00,
-            'conv4_2':1.00,
-            'conv4_3':1.00,
-            'conv5_1':1.00,
-            'conv5_2':1.00,
-            'conv5_3':1.00
-            }
+        # the value only used when not leveraging pre-trained weights
+        vgg16_conv_layer = {'conv1_1':(3, 3, 3, 64),
+                            'conv1_2':(3, 3, 64, 64),
+                            'conv2_1':(3, 3, 64, 128),
+                            'conv2_2':(3, 3, 128, 128),
+                            'conv3_1':(3, 3, 128, 256),
+                            'conv3_2':(3, 3, 256, 256),
+                            'conv3_3':(3, 3, 256, 256),
+                            'conv4_1':(3, 3, 256, 512),
+                            'conv4_2':(3, 3, 512, 512),
+                            'conv4_3':(3, 3, 512, 512),
+                            'conv5_1':(3, 3, 512, 512),
+                            'conv5_2':(3, 3, 512, 512),
+                            'conv5_3':(3, 3, 512, 512)}
+        my_fc_layer = {'fc_2':(512, self.classes)}
 
         # declare and initialize the weights of VGG16
         with tf.variable_scope(self.scope_name):
             # weight decay
             self._weight_decay = 0.0
-            for k, v in sorted(dp.items()):
-                (conv_filter, gamma, beta, bn_mean, bn_variance), conv_bias = self.get_conv_filter(name=k, new_bn=new_bn), self.get_bias(name=k)
+            for k, v in vgg16_conv_layer.items():
+                if conv_pre_training:
+                    conv_filter, gamma, beta, bn_mean, bn_variance = self.get_conv_filter(name=k, new_bn=new_bn)
+                    conv_bias =  self.get_bias(name=k)
+                else:
+                    conv_filter, gamma, beta, bn_mean, bn_variance = self.get_conv_filter(name=k, shape=v)
+                    conv_bias = self.get_bias(name=k, shape=(v[3],))
+                
                 self.para_dict[k] = [conv_filter, conv_bias]
                 self.para_dict[k+"_gamma"] = gamma
                 self.para_dict[k+"_beta"] = beta
                 self.para_dict[k+"_bn_mean"] = bn_mean
                 self.para_dict[k+"_bn_variance"] = bn_variance
                 self.gamma_var.append(self.para_dict[k+"_gamma"])
-
+                
                 # weight decay
                 self._weight_decay += tf.nn.l2_loss(conv_filter)+tf.nn.l2_loss(conv_bias)
-
-            if fc_pre_training:
-                fc_W, fc_b = self.get_fc_layer(name='fc_2'), self.get_bias(name='fc_2')
-                self.para_dict['fc_2'] = [fc_W, fc_b]
-
-                self._weight_decay += tf.nn.l2_loss(fc_W) + tf.nn.l2_loss(fc_b)
-            else:
-                fc_W = self.get_fc_layer(name='fc_2', shape=(512, self.classes))
-                fc_b = self.get_bias(name='fc_2', shape=(self.classes,))
-                self.para_dict['fc_2'] = [fc_W, fc_b]
-
-                self._weight_decay += tf.nn.l2_loss(fc_W) + tf.nn.l2_loss(fc_b)
-
-        print(("build model finished: %ds" % (time.time() - start_time)))
-
-    def sparsity_train(self, l1_gamma=0.001, l1_gamma_diff=0.001, decay=0.0005, keep_prob=0.0):
+            
+            for k, v in my_fc_layer.items():
+                if fc_pre_training:
+                    fc_W = self.get_fc_layer(name=k)
+                    fc_b = self.get_bias(name=k)
+                else:
+                    fc_W = self.get_fc_layer(name=k, shape=v)
+                    fc_b = self.get_bias(name=k, shape=(v[1],))
+            
+            self.para_dict['fc_2'] = [fc_W, fc_b]
+            self._weight_decay += tf.nn.l2_loss(fc_W) + tf.nn.l2_loss(fc_b)
         
-        self._keep_prob = keep_prob
+        print(("build model finished: %ds" % (time.time() - start_time)))
+        
+    def add_centers(self, centers=None):
+        """
+        add centers of every class
+        
+        @param centers: its shape must be (# of classes, # of features)
+        """
+        with tf.variable_scope(self.scope_name):
+            # classes vs. feature
+            if centers is not None:
+                self.centers = tf.get_variable(initializer=centers, name="centers", dtype=tf.float32, trainable=False)
+            else:
+                self.centers = tf.get_variable(shape=(self.classes, self.para_dict['fc_2'][0].shape[0]), initializer=tf.zeros_initializer(), name='centers', dtype=tf.float32, trainable=False)
+
+    def sparsity_train(self, l1_gamma=0.001, l1_gamma_diff=0.001, decay=0.0005, keep_prob=0.0, lambda_c = 1e-4):
+        """
+        define computational graphs for training a compact model.
+        
+        @param l1_gamma      : the coefficient of sparsity penalty (float)
+        @param l1_gamma_diff : the coefficient of monotonicity-induced penalty (float)
+        @param decay         : the coefficient of weight decay (float)
+        @param keep_prob     : keep_prob of dropout layer (float)
+        @param lambda_c      : the coefficient of lambda_c (float)
+        """
         start_time = time.time()
         with tf.name_scope("var_dp"):
             conv1_1 = self.idp_conv_bn_layer( self.x, "conv1_1")
@@ -141,45 +173,69 @@ class VGG16_GAP:
             conv5_2 = self.idp_conv_bn_layer(conv5_1, "conv5_2")
             conv5_3 = self.idp_conv_bn_layer(conv5_2, "conv5_3")
             pool5 = self.global_avg_pool(conv5_3, 'pool5')
-
+            
+            # features
             self.features = pool5
-
-            pool5 = self.dropout_layer(pool5, self._keep_prob)
-
+            
+            # dropout
+            pool5 = self.dropout_layer(pool5, keep_prob)
+            
+            # logit
             logits = self.fc_layer(pool5, 'fc_2')       
             prob = tf.nn.softmax(logits, name="prob")
             
+            # cross_entropy loss
             cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=self.y)
             loss = tf.reduce_mean(cross_entropy)
             accuracy = tf.reduce_mean(tf.cast(tf.equal(x=tf.argmax(logits, 1), y=tf.argmax(self.y, 1)),tf.float32))
             
-            # gamma l1 regularization
+            # center loss
+            labels = tf.argmax(self.y, 1)
+            batch_centers = tf.gather(self.centers, labels, axis=0) # batch,
+            self.center_loss = tf.nn.l2_loss(self.features - batch_centers) # tf.reduce_sum(tf.reduce_mean(tf.square(tf.subtract(x=self.features, y=batch_centers)), axis=1))                
+            
+            # update centers using this batch samples
+            diff = batch_centers - self.features
+            unique_label, unique_idx, unique_count = tf.unique_with_counts(labels)
+            appear_times = tf.gather(unique_count, unique_idx)
+            appear_times = tf.reshape(appear_times, [-1, 1])
+            diff = diff / tf.cast((1 + appear_times), tf.float32)
+            diff = 0.5 * diff
+            self.centers_update_op = tf.scatter_sub(self.centers, labels, diff)
+            
+            # sparsity penalty: imposing l1 regularization upon gamma
             l1_gamma_regularizer = tf.contrib.layers.l1_regularizer(scale=l1_gamma)
             gamma_l1 = tf.contrib.layers.apply_regularization(l1_gamma_regularizer, self.gamma_var)
 
-            # gamma_diff l1 regularization
+            # monotonicity-induced penalty: imposing l1 regularization upon gamma_diff
             def non_increasing_constraint_axis_0(a):
                 return tf.nn.relu(a[1:]-a[:-1])
             gamma_diff_var = [non_increasing_constraint_axis_0(x) for x in self.gamma_var]
-
             l1_gamma_diff_regularizer = tf.contrib.layers.l1_regularizer(scale=l1_gamma_diff)
             gamma_diff_l1 = tf.contrib.layers.apply_regularization(l1_gamma_diff_regularizer, gamma_diff_var)
             
+            # store sparsity_train related operations into dictionary
             self.prob_dict["var_dp"] = prob
-            self.loss_dict["var_dp"] = loss + gamma_l1 + gamma_diff_l1 + self._weight_decay * decay
+            self.loss_dict["var_dp"] = loss + gamma_l1 + gamma_diff_l1 + self._weight_decay * decay + self.center_loss*lambda_c
             self.accu_dict["var_dp"] = accuracy
-            
-            tf.summary.scalar(name="accu_var_dp", tensor=accuracy)
-            tf.summary.scalar(name="loss_var_dp", tensor=loss)
-        self.summary_op = tf.summary.merge_all()        
+     
         print(("sparsity train operation setup: %ds" % (time.time() - start_time)))
     
-    def set_idp_operation(self, dp, decay=0.0002, keep_prob=1.0):
-        self._keep_prob = keep_prob
+    def set_idp_operation(self, dp, decay=0.0, keep_prob=1.0, lambda_c = 1e-4, train=True):
+        """
+        define computational graphs at different utilization levels.
+        
+        @param dp        : percentage of utilization (list)
+        @param decay     : the coefficient of weight decay (float)
+        @param keep_prob : keep_prob of dropout layer (float)
+        @param lambda_c  : the coefficient of lambda_c (float)
+        """
         if type(dp) != list:
-            raise ValueError("when block_variational is False, dp must be a list.")
-        self.dp = dp 
-        print("DP under test:", np.round(self.dp,2))
+            raise ValueError("dp must be a list containing utilization levels of interests.")
+        else:
+            self.dp = dp 
+            print("DP under test:", np.round(self.dp,2))
+            
         start_time = time.time()
         # create operations at every dot product percentages
         for dp_i in dp:
@@ -229,9 +285,10 @@ class VGG16_GAP:
                     self.net_shape.append(conv5_1.get_shape())
                     self.net_shape.append(conv5_2.get_shape())
                     self.net_shape.append(pool5.get_shape())
+                    # features
                     self.features = pool5
                 
-                pool5 = self.dropout_layer(pool5, self._keep_prob)
+                pool5 = self.dropout_layer(pool5, keep_prob)
                 
                 logits = self.fc_layer(pool5, 'fc_2')
                 prob = tf.nn.softmax(logits, name="prob")
@@ -239,15 +296,26 @@ class VGG16_GAP:
                 cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=self.y)
                 loss = tf.reduce_mean(cross_entropy)
                 accuracy = tf.reduce_mean(tf.cast(tf.equal(x=tf.argmax(logits, 1), y=tf.argmax(self.y, 1)), dtype=tf.float32))
+                
+                # center loss
+                labels = tf.argmax(self.y, 1)
+                batch_centers = tf.gather(self.centers, labels, axis=0) # batch,
+                self.center_loss = tf.nn.l2_loss(self.features - batch_centers) # tf.reduce_sum(tf.reduce_mean(tf.square(tf.subtract(x=self.features, y=batch_centers)), axis=1))                
+                
+                diff = batch_centers - self.features
+                unique_label, unique_idx, unique_count = tf.unique_with_counts(labels)
+                appear_times = tf.gather(unique_count, unique_idx)
+                appear_times = tf.reshape(appear_times, [-1, 1])
+
+                diff = diff / tf.cast((1 + appear_times), tf.float32)
+                diff = 0.5 * diff
+                self.centers_update_op = tf.scatter_sub(self.centers, labels, diff)
 
                 # self.feature_dict[str(int(dp_i*100))] = fc_1
                 self.prob_dict[str(int(dp_i*100))] = prob
-                self.loss_dict[str(int(dp_i*100))] = loss + self._weight_decay * decay
                 self.accu_dict[str(int(dp_i*100))] = accuracy
+                self.loss_dict[str(int(dp_i*100))] = loss + self._weight_decay * decay + self.center_loss*lambda_c
 
-                tf.summary.scalar(name="accu_at_"+str(int(dp_i*100)), tensor=accuracy)
-                tf.summary.scalar(name="loss_at_"+str(int(dp_i*100)), tensor=loss)
-        self.summary_op = tf.summary.merge_all()
         print(("Set dp operations finished: %ds" % (time.time() - start_time)))
 
     def spareness(self, thresh=0.05):
@@ -285,10 +353,12 @@ class VGG16_GAP:
                 moving_variance = tf.get_variable(name=name+'_bn_variance')
                 beta = tf.get_variable(name=name+'_beta')
             H,W,C,O = conv_filter.get_shape().as_list()
-            print(bottom.get_shape().as_list()) 
+            # print(bottom.get_shape().as_list())
+            
+            # ignore input images
             if name is not 'conv1_1':
                 bottom = bottom[:,:,:,:int(C*dp)]
-                print("AFTER",bottom.get_shape().as_list())
+                # print("AFTER",bottom.get_shape().as_list())
                 conv_filter = conv_filter[:,:,:int(C*dp),:]
 
             # create a mask determined by the dot product percentage
@@ -308,7 +378,7 @@ class VGG16_GAP:
                                               assign_moving_average(moving_variance, variance, 0.99)]):
                     return tf.identity(mean), tf.identity(variance)
 
-            mean, variance = tf.cond(self.is_train, mean_var_with_update, lambda:(moving_mean, moving_variance))
+            mean, variance = tf.cond(self.bn_train, mean_var_with_update, lambda:(moving_mean, moving_variance))
 
             conv = tf.nn.batch_normalization(conv, mean, variance, beta, conv_gamma, 1e-05)
             relu = tf.nn.relu(conv)
