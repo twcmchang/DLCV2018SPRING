@@ -1,9 +1,12 @@
 ## Quick start
-- Test accuracy: 86.395%, rank 2 on [leaderboard](https://www.kaggle.com/c/2018-spring-dlcv-final-project-2/leaderboard)
+- Test accuracy: 86.395%, rank 2 on [leaderboard](https://www.kaggle.com/c/2018-spring-dlcv-final-project-2/leaderboard); validation accuracy: 86.166%
 ```
 bash run.sh test_image_path output_filename
 ```
-- Validation accuracy: 86.166%
+- Environment requirements
+```
+pip install -r requirements.txt
+```
 
 --------
 
