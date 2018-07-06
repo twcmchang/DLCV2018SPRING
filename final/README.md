@@ -1,5 +1,10 @@
+# Compressed Nets for Face Recognition
+- Goal: learn a compact model for face recognition
+- Dataset: trimmed CelebA (~80k images with 2,360 identity labels)
+- [Kaggle leaderboard](https://www.kaggle.com/c/2018-spring-dlcv-final-project-2/leaderboard)
+
 ## Quick start
-- Test accuracy: 86.395%, rank 2 on [leaderboard](https://www.kaggle.com/c/2018-spring-dlcv-final-project-2/leaderboard); validation accuracy: 86.166%
+- Test accuracy: 86.395%, rank 2 on ; validation accuracy: 86.166%
 ```
 bash run.sh [test_image_path] [output_filename]
 
@@ -68,6 +73,10 @@ python3 test.py -i [finalized_npy] -o [output_csv_file] -tp [test_path]
 ```
 
 ![](plot/perf_summary.png)
+
+Code for other benchmark model and development notebook are shown in [dev-ipynb](https://github.com/thtang/DLCV2018SPRING/tree/master/final/dev-ipynb).
+
+For more information, please refer to our [poster](https://github.com/twcmchang/DLCV2018SPRING/blob/master/final/poster.pdf).
 
 ## Model
 * [baseline](https://www.dropbox.com/s/c1u540426hxb0bc/save_baseline.zip?dl=0)
