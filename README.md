@@ -1,18 +1,16 @@
-# DLCV, 2018 Spring
-Course: Deep Learning for Computer Vision at National Taiwan University
+# Deep Learning for Computer Vision
+Lecturer: Prof. [Yu-Chiang Frank Wang](http://vllab.ee.ntu.edu.tw/members.html)
 
-Author: d05921027 Chun-Min Chang, twcmchang@gmail.com
+Course website: http://vllab.ee.ntu.edu.tw/dlcv.html
 
--------
+## Contents
 
-- HW 1: Bayesian inference; PCA and kNN on face recognition [(link)](https://github.com/twcmchang/DLCV2018SPRING/blob/master/hw1/md/hw1_d05921027.md)
+1. Bayesian inference; PCA and kNN on face recognition [(link)](https://github.com/twcmchang/DLCV2018SPRING/blob/master/hw1/md/hw1_d05921027.md)
+2. kernel method; color and texture segmentation; recognition with bag of visual words [(link)](https://github.com/twcmchang/DLCV2018SPRING/blob/master/hw2/md/hw2_d05921027.md)
+3. semantic segmentation of satellite images [(link)](https://github.com/twcmchang/DLCV2018SPRING/blob/master/hw3/)
+4. conditional face generation via VAE and GAN with feature distanglement [(link)](https://github.com/twcmchang/DLCV2018SPRING/blob/master/hw4/)
+5. video action recognition using recurrent neural networks [(link)](https://github.com/twcmchang/DLCV2018SPRING/blob/master/hw5/)
 
-- HW 2: kernel method; color and texture segmentation; recognition with bag of visual words [(link)](https://github.com/twcmchang/DLCV2018SPRING/blob/master/hw2/md/hw2_d05921027.md)
-
-- HW 3: semantic segmentation of satellite images [(repo)](https://github.com/twcmchang/DLCV2018SPRING/blob/master/hw3/)
-
-- HW 4: conditional face generation via variational autoencoder and generative adversarial network [(repo)](https://github.com/twcmchang/DLCV2018SPRING/blob/master/hw4/)
-
-- HW 5: video action recognition using recurrent neural networks [(repo)](https://github.com/twcmchang/DLCV2018SPRING/blob/master/hw5/)
+Final project: compact model for face recognition [(link)](https://github.com/twcmchang/DLCV2018SPRING/blob/master/final/)
 
 -------
