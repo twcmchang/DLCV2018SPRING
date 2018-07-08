@@ -1,7 +1,7 @@
 # Semantic Segmentation
 To recognize what's in the image in pixel level and generate a semantic mask
 - Input: a satellite image
-- Output: a semantic mask whose size is equivalent to that input image
+- Output: a semantic mask of 7 types of landscapes
 ![](plot/intro.png)
 
 
@@ -31,9 +31,8 @@ python3 train --init_from [pretrained npy] --save_dir [model checkpoint dir] --m
 - early stopping patience = 50
 - learning rate is 1e-4 and half per 2000 steps
 - without dropout and weight decay
-- input dimension  = (512, 512, 3) and then resize to (256, 256, 3)
-- output dimension = (256, 256, 3) and then resize to (512, 512, 3)
-
+- input dimension  = (256, 256, 3)
+- output dimension = (256, 256, 3)
 
 ## 2. Test
 
