@@ -1,18 +1,18 @@
 ## Quick start
 - Baseline model (FCN32s)
 ```
-./hw3.sh <test_image_directory> <plot_save_directory>
+./hw3.sh [test_image_directory] [plot_save_directory]
 ```
 - Best model (FCN8s)
 ```
-./hw3_best.sh <test_image_directory> <plot_save_directory>
+./hw3_best.sh [test_image_directory] [plot_save_directory]
 ```
 
 
 ## 1. Train
 
 ```
-python3 train --init_from <pretrained npy> --save_dir <model checkpoint dir> --mode <FCN8s, FCN16s, or FCN32s>
+python3 train --init_from [pretrained npy] --save_dir [model checkpoint dir] --mode [FCN8s, FCN16s, or FCN32s]
 ```
 - mode = FCN32s
 - batch size = 32
@@ -30,11 +30,11 @@ python3 train --init_from <pretrained npy> --save_dir <model checkpoint dir> --m
 ## 2. Test
 
 ```
-python3 test.py --test_dir <testing data dir> --save_dir <model checkpoint dir> --plot_dir <plot dir> --mode <FCN8s, FCN16s, or FCN32s>
+python3 test.py --test_dir [testing data dir] --save_dir [model checkpoint dir] --plot_dir [plot dir] --mode [FCN8s, FCN16s, or FCN32s]
 ```
 
 ## 3. Evaluate (mIoU), provided by TAs
 
 ```
-python3 mean_iou_evaluate.py -g <ground truth dir> -p <plot dir>
+python3 mean_iou_evaluate.py -g [ground truth dir] -p [plot dir]
 ```
