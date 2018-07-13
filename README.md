@@ -11,6 +11,7 @@ Course website: http://vllab.ee.ntu.edu.tw/dlcv.html
 4. conditional face generation via VAE and GAN with feature distanglement [(link)](https://github.com/twcmchang/DLCV2018SPRING/blob/master/hw4/)
 5. video action recognition using recurrent neural networks [(link)](https://github.com/twcmchang/DLCV2018SPRING/blob/master/hw5/)
 
-Final project: compact model for face recognition [(link)](https://github.com/twcmchang/DLCV2018SPRING/blob/master/final/)
+## Final competition: compact model for face recognition
+Efficient and Adaptive ConvNets for Face Recognition: A Channel Prioritized Approach [(link)](https://github.com/twcmchang/DLCV2018SPRING/blob/master/final/)
 
--------
+**Won the 1st prize!** Specially thanks to the sponsorship of [MultiTek](http://www.multitek-inc.com/multitek-tw).
