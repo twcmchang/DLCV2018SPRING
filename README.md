@@ -12,6 +12,6 @@ Course website: http://vllab.ee.ntu.edu.tw/dlcv.html
 5. video action recognition using recurrent neural networks [(link)](https://github.com/twcmchang/DLCV2018SPRING/blob/master/hw5/)
 
 ## Final competition: compact model for face recognition
-Efficient and Adaptive ConvNets for Face Recognition: A Channel Prioritized Approach [(link)](https://github.com/twcmchang/DLCV2018SPRING/blob/master/final/)
+Efficient and Adaptive ConvNets for Face Recognition: A Channel Prioritized Approach ([link](https://github.com/twcmchang/DLCV2018SPRING/blob/master/final/) and [poster](https://github.com/twcmchang/DLCV2018SPRING/blob/master/final/poster.pdf))
 
 **Won the 1st prize!** Specially thanks to the sponsorship of [MultiTek](http://www.multitek-inc.com/multitek-tw).
